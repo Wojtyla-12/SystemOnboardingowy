@@ -1,37 +1,66 @@
 ﻿@model IEnumerable<SystemOnboardingowy.Models.ZadanieWdrozeniowe>
+
 @{
     ViewData["Title"] = "Moje Zadania";
 }
 
-<h2>📋 Zadania do wykonania dla Twojego działu</h2>
-<p class="text-muted">Lista otwartych zadań przypisanych do Twojej roli.</p>
+<div class="container mt-4">
+    <h2 class="mb-4">📋 Moje Zadania (Do zrobienia)</h2>
 
-@if (!Model.Any())
-{
-    <div class="alert alert-success">🎉 Brak zaległych zadań!</div>
-}
-else
-{
-    <div class="row">
-        @foreach (var item in Model)
-        {
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 border-warning">
-                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                        <strong>@item.Dzial</strong>
-                        <small>Start: @item.Wdrozenie.DataRozpoczeciaPracy.ToShortDateString()</small>
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title">@item.Wdrozenie.Pracownik.Imie @item.Wdrozenie.Pracownik.Nazwisko</h5>
-                        <p class="card-text text-muted">@item.Wdrozenie.Pracownik.Stanowisko</p>
-                        <hr />
-                        <p class="card-text" style="font-size: 1.1em;">👉 <strong>@item.Tresc</strong></p>
-                    </div>
-                    <div class="card-footer bg-transparent border-warning text-center">
-                        <a asp-action="Details" asp-route-id="@item.WdrozenieId" class="btn btn-primary w-100">Przejdź do realizacji ➡️</a>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-}
+    @if (!Model.Any())
+    {
+        <div class="alert alert-success">
+            🎉 Brak zaległych zadań! Wszystko zrobione.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-hover align-middle mb-0 bg-gradient">
+                <thead class="table-light">
+                    <tr>
+                        <th>Pracownik</th>
+                        <th>Zadanie</th>
+                        <th>Start Pracy</th>
+                        <th>Akcja</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@item.Wdrozenie.Pracownik.ImieNazwisko</strong><br />
+                                <small class="text-muted">@item.Wdrozenie.Stanowisko</small>
+                            </td>
+                            <td>
+                                @item.Tresc
+                            </td>
+                            <td>
+                                @if (item.Wdrozenie.DataRozpoczeciaPracy < DateTime.Now)
+                                {
+                                    <span class="badge bg-danger">Zaległe (@item.Wdrozenie.DataRozpoczeciaPracy.ToShortDateString())</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info text-dark">@item.Wdrozenie.DataRozpoczeciaPracy.ToShortDateString()</span>
+                                }
+                            </td>
+                            <td>
+                                <form asp-action="WykonajZadanie" method="post" class="d-inline">
+                                    <input type="hidden" name="zadanieId" value="@item.Id" />
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        ✅ Oznacz jako wykonane
+                                    </button>
+                                </form>
+                                <a asp-action="Details" asp-route-id="@item.WdrozenieId" class="btn btn-outline-primary btn-sm ms-1">
+                                    Szczegóły
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

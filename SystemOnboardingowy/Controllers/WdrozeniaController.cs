@@ -14,68 +14,102 @@ namespace SystemOnboardingowy.Controllers
 
         public WdrozeniaController(OnboardingContext context) { _context = context; }
 
-        // GET: Wdrozenia
-        public async Task<IActionResult> Index(bool pokazZakonczone = false)
+        // GET: Wdrozenia (Z wyszukiwaniem i sortowaniem)
+        public async Task<IActionResult> Index(string sortOrder, string searchString, bool pokazZakonczone = false)
         {
+            // Parametry do widoku (zachowanie stanu wyszukiwania i sortowania)
+            ViewData["CurrentFilter"] = searchString;
+            ViewData["PokazZakonczone"] = pokazZakonczone;
+
+            ViewData["DateSortParm"] = String.IsNullOrEmpty(sortOrder) ? "date_desc" : "";
+            ViewData["StatusSortParm"] = sortOrder == "Status" ? "status_desc" : "Status";
+            ViewData["NameSortParm"] = sortOrder == "Name" ? "name_desc" : "Name";
+
             var query = _context.Wdrozenia
                 .Include(w => w.Pracownik)
                 .Include(w => w.Zadania)
                 .AsQueryable();
 
+            // 1. Filtrowanie statusu
             if (!pokazZakonczone)
             {
                 query = query.Where(w => w.Status != StatusZgloszenia.Zakonczone && w.Status != StatusZgloszenia.Anulowane);
             }
 
+            // 2. Wyszukiwanie (Search)
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(w => w.Pracownik.Nazwisko.Contains(searchString) || w.Pracownik.Imie.Contains(searchString));
+            }
+
             var lista = await query.ToListAsync();
 
+            // 3. Sortowanie
+            // Sprawdzamy dział zalogowanego użytkownika dla domyślnego sortowania
             Dzial? mojDzial = null;
             if (User.IsInRole("IT")) mojDzial = Dzial.IT;
             if (User.IsInRole("HR")) mojDzial = Dzial.HR;
             if (User.IsInRole("Sprzet")) mojDzial = Dzial.Sprzet;
 
-            lista = lista.OrderByDescending(w =>
-                mojDzial.HasValue && w.Zadania.Any(z => z.Dzial == mojDzial && !z.CzyWykonane)
-            )
-            .ThenByDescending(w => w.Status == StatusZgloszenia.Nowe)
-            .ThenBy(w => w.DataRozpoczeciaPracy)
-            .ToList();
+            switch (sortOrder)
+            {
+                case "date_desc": lista = lista.OrderByDescending(w => w.DataRozpoczeciaPracy).ToList(); break;
+                case "Status": lista = lista.OrderBy(w => w.Status).ToList(); break;
+                case "status_desc": lista = lista.OrderByDescending(w => w.Status).ToList(); break;
+                case "Name": lista = lista.OrderBy(w => w.Pracownik.Nazwisko).ToList(); break;
+                case "name_desc": lista = lista.OrderByDescending(w => w.Pracownik.Nazwisko).ToList(); break;
 
-            ViewData["PokazZakonczone"] = pokazZakonczone;
+                default:
+                    // Domyślne "inteligentne" sortowanie: priorytet mają zadania mojego działu
+                    lista = lista.OrderByDescending(w =>
+                        mojDzial.HasValue && w.Zadania.Any(z => z.Dzial == mojDzial && !z.CzyWykonane)
+                    )
+                    .ThenByDescending(w => w.Status == StatusZgloszenia.Nowe)
+                    .ThenBy(w => w.DataRozpoczeciaPracy)
+                    .ToList();
+                    break;
+            }
+
             return View(lista);
         }
 
-        // GET: Wdrozenia/Details/5
-        public async Task<IActionResult> Details(int id)
+        // GET: Wdrozenia/MojeZadania
+        public async Task<IActionResult> MojeZadania()
         {
-            var wdrozenie = await _context.Wdrozenia
-                .Include(w => w.Pracownik)
-                .Include(w => w.Zadania)
-                .Include(w => w.Notatki)
-                .FirstOrDefaultAsync(w => w.Id == id);
+            Dzial? mojDzial = null;
+            if (User.IsInRole("IT")) mojDzial = Dzial.IT;
+            else if (User.IsInRole("HR")) mojDzial = Dzial.HR;
+            else if (User.IsInRole("Sprzet")) mojDzial = Dzial.Sprzet;
 
-            if (wdrozenie == null) return NotFound();
-            wdrozenie.Notatki = wdrozenie.Notatki.OrderByDescending(n => n.DataUtworzenia).ToList();
+            if (mojDzial == null) return View(new List<ZadanieWdrozeniowe>());
 
-            return View(wdrozenie);
+            var zadania = await _context.ZadaniaWdrozeniowe
+                .Include(z => z.Wdrozenie)
+                .ThenInclude(w => w.Pracownik)
+                .Where(z => z.Dzial == mojDzial && !z.CzyWykonane && z.Wdrozenie.Status != StatusZgloszenia.Anulowane)
+                .OrderBy(z => z.Wdrozenie.DataRozpoczeciaPracy)
+                .ToListAsync();
+
+            return View(zadania);
         }
 
-        // GET: Wdrozenia/Create
+        // ... [Reszta metod: Details, Create, Edit, Delete, WykonajZadanie - bez zmian] ...
+        // SKOPIUJ POZOSTAŁE METODY Z POPRZEDNIEJ WERSJI (Details, Create (Get/Post), DodajNotatke, Anuluj, WykonajZadanie)
+        // Ze względu na limit znaków, wklejam tu tylko zmieniony Index i MojeZadania. 
+        // Upewnij się, że reszta metod (zwłaszcza nowy Create z dynamicznymi zadaniami) jest w klasie.
+
+        // --- PONIŻEJ TYLKO DLA KOMPLETNOŚCI METODA CREATE (GET/POST) BYŚ JEJ NIE STRACIŁ ---
+
         [Authorize(Roles = "Kierownik")]
         public IActionResult Create()
         {
             var model = new WdrozenieCreateViewModel
             {
-                PracownicyLista = _context.Pracownicy.Select(p => new SelectListItem
-                {
-                    Value = p.Id.ToString(),
-                    Text = p.ImieNazwisko
-                }).ToList()
+                PracownicyLista = _context.Pracownicy.Select(p => new SelectListItem { Value = p.Id.ToString(), Text = p.ImieNazwisko }).ToList()
             };
             return View(model);
         }
 
-        // POST: Wdrozenia/Create
         [HttpPost]
         [Authorize(Roles = "Kierownik")]
         [ValidateAntiForgeryToken]
@@ -83,7 +117,6 @@ namespace SystemOnboardingowy.Controllers
         {
             if (ModelState.IsValid)
             {
-                // 1. Tworzymy obiekt encji bazodanowej
                 var wdrozenie = new Wdrozenie
                 {
                     PracownikId = model.PracownikId,
@@ -94,8 +127,11 @@ namespace SystemOnboardingowy.Controllers
                     WymaganyVPN = model.WymaganyVPN,
                     AdresyEmail = model.AdresyEmail
                 };
+                // ... (Reszta logiki tworzenia sprzętu/zadań z poprzedniej odpowiedzi) ...
 
-                // 2. Budujemy listy stringów do zapisu w bazie (dla informacji)
+                // SKRÓT - PAMIĘTAJ ABY ZACHOWAĆ PEŁNĄ LOGIKĘ TWORZENIA Z POPRZEDNIEGO KROKU
+                // JEŚLI NADPISZESZ PLIK, UPEWNIJ SIĘ ŻE METODA CREATE JEST TA ROZBUDOWANA
+
                 var sprzetList = new List<string>();
                 if (model.Sprzet_PC) sprzetList.Add("PC Stacjonarny");
                 if (model.Sprzet_Laptop) sprzetList.Add("Laptop");
@@ -115,85 +151,34 @@ namespace SystemOnboardingowy.Controllers
                 wdrozenie.DostepDoDyskow = string.Join(", ", dyskiList);
 
                 _context.Add(wdrozenie);
-                await _context.SaveChangesAsync(); // Zapisujemy, żeby dostać ID wdrożenia
+                await _context.SaveChangesAsync();
 
-                // 3. GENEROWANIE ZADAŃ
                 var zadania = new List<ZadanieWdrozeniowe>();
-
-                // Zadania dla Sprzętowca - każde urządzenie to osobne zadanie
                 foreach (var item in sprzetList)
-                {
-                    zadania.Add(new ZadanieWdrozeniowe
-                    {
-                        WdrozenieId = wdrozenie.Id,
-                        Dzial = Dzial.Sprzet,
-                        Tresc = $"Wydać/Zakupić: {item}",
-                        CzyWykonane = false
-                    });
-                }
-
-                // Zadania dla IT
+                    zadania.Add(new ZadanieWdrozeniowe { WdrozenieId = wdrozenie.Id, Dzial = Dzial.Sprzet, Tresc = $"Wydać/Zakupić: {item}", CzyWykonane = false });
                 if (!string.IsNullOrWhiteSpace(model.AdresyEmail))
-                {
-                    zadania.Add(new ZadanieWdrozeniowe
-                    {
-                        WdrozenieId = wdrozenie.Id,
-                        Dzial = Dzial.IT,
-                        Tresc = $"Utworzyć adresy email: {model.AdresyEmail}",
-                        CzyWykonane = false
-                    });
-                }
-
+                    zadania.Add(new ZadanieWdrozeniowe { WdrozenieId = wdrozenie.Id, Dzial = Dzial.IT, Tresc = $"Utworzyć adresy email: {model.AdresyEmail}", CzyWykonane = false });
                 if (model.WymaganyVPN)
-                {
-                    zadania.Add(new ZadanieWdrozeniowe
-                    {
-                        WdrozenieId = wdrozenie.Id,
-                        Dzial = Dzial.IT,
-                        Tresc = "Skonfigurować dostęp VPN",
-                        CzyWykonane = false
-                    });
-                }
-
-                // Każdy dysk jako osobne zadanie dla IT
+                    zadania.Add(new ZadanieWdrozeniowe { WdrozenieId = wdrozenie.Id, Dzial = Dzial.IT, Tresc = "Skonfigurować dostęp VPN", CzyWykonane = false });
                 foreach (var dysk in dyskiList)
-                {
-                    zadania.Add(new ZadanieWdrozeniowe
-                    {
-                        WdrozenieId = wdrozenie.Id,
-                        Dzial = Dzial.IT,
-                        Tresc = $"Nadać uprawnienia do dysku: {dysk}",
-                        CzyWykonane = false
-                    });
-                }
-
-                // Zadanie dla HR
-                zadania.Add(new ZadanieWdrozeniowe
-                {
-                    WdrozenieId = wdrozenie.Id,
-                    Dzial = Dzial.HR,
-                    Tresc = "Przygotować umowę i szkolenie BHP",
-                    CzyWykonane = false
-                });
+                    zadania.Add(new ZadanieWdrozeniowe { WdrozenieId = wdrozenie.Id, Dzial = Dzial.IT, Tresc = $"Nadać uprawnienia do dysku: {dysk}", CzyWykonane = false });
+                zadania.Add(new ZadanieWdrozeniowe { WdrozenieId = wdrozenie.Id, Dzial = Dzial.HR, Tresc = "Przygotować umowę i szkolenie BHP", CzyWykonane = false });
 
                 _context.ZadaniaWdrozeniowe.AddRange(zadania);
-
-                // Notatka startowa
-                _context.Notatki.Add(new Notatka
-                {
-                    WdrozenieId = wdrozenie.Id,
-                    Tresc = $"Utworzono wdrożenie dla stanowiska: {model.Stanowisko}. Start: {wdrozenie.DataRozpoczeciaPracy:d}",
-                    Autor = User.Identity.Name,
-                    CzyAutomatyczna = true
-                });
-
+                _context.Notatki.Add(new Notatka { WdrozenieId = wdrozenie.Id, Tresc = $"Utworzono wdrożenie dla stanowiska: {model.Stanowisko}. Start: {wdrozenie.DataRozpoczeciaPracy:d}", Autor = User.Identity.Name, CzyAutomatyczna = true });
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-
-            // Reload listy w przypadku błędu walidacji
             model.PracownicyLista = _context.Pracownicy.Select(p => new SelectListItem { Value = p.Id.ToString(), Text = p.ImieNazwisko }).ToList();
             return View(model);
+        }
+
+        public async Task<IActionResult> Details(int id)
+        {
+            var wdrozenie = await _context.Wdrozenia.Include(w => w.Pracownik).Include(w => w.Zadania).Include(w => w.Notatki).FirstOrDefaultAsync(w => w.Id == id);
+            if (wdrozenie == null) return NotFound();
+            wdrozenie.Notatki = wdrozenie.Notatki.OrderByDescending(n => n.DataUtworzenia).ToList();
+            return View(wdrozenie);
         }
 
         [HttpPost]
@@ -201,13 +186,7 @@ namespace SystemOnboardingowy.Controllers
         {
             if (!string.IsNullOrWhiteSpace(tresc))
             {
-                _context.Notatki.Add(new Notatka
-                {
-                    WdrozenieId = id,
-                    Tresc = tresc,
-                    Autor = User.Identity.Name ?? "User",
-                    CzyAutomatyczna = false
-                });
+                _context.Notatki.Add(new Notatka { WdrozenieId = id, Tresc = tresc, Autor = User.Identity.Name ?? "User", CzyAutomatyczna = false });
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Details), new { id });
@@ -235,27 +214,15 @@ namespace SystemOnboardingowy.Controllers
             {
                 zadanie.CzyWykonane = !zadanie.CzyWykonane;
                 string status = zadanie.CzyWykonane ? "Wykonano" : "Cofnięto";
-                _context.Notatki.Add(new Notatka
-                {
-                    WdrozenieId = zadanie.WdrozenieId,
-                    Tresc = $"{status}: {zadanie.Tresc} ({zadanie.Dzial})",
-                    Autor = User.Identity.Name,
-                    CzyAutomatyczna = true
-                });
+                _context.Notatki.Add(new Notatka { WdrozenieId = zadanie.WdrozenieId, Tresc = $"{status}: {zadanie.Tresc} ({zadanie.Dzial})", Autor = User.Identity.Name, CzyAutomatyczna = true });
                 await _context.SaveChangesAsync();
-
                 var wdrozenie = await _context.Wdrozenia.Include(w => w.Zadania).FirstOrDefaultAsync(w => w.Id == zadanie.WdrozenieId);
-
-                // Logika automatycznej zmiany statusu
                 if (wdrozenie.Zadania.All(z => z.CzyWykonane))
                 {
                     wdrozenie.Status = StatusZgloszenia.Zakonczone;
                     _context.Notatki.Add(new Notatka { WdrozenieId = wdrozenie.Id, Tresc = "Wszystko gotowe. ZAKOŃCZONE.", Autor = "SYSTEM", CzyAutomatyczna = true });
                 }
-                else if (wdrozenie.Status != StatusZgloszenia.WToku)
-                {
-                    wdrozenie.Status = StatusZgloszenia.WToku;
-                }
+                else if (wdrozenie.Status != StatusZgloszenia.WToku) { wdrozenie.Status = StatusZgloszenia.WToku; }
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Details), new { id = zadanie.WdrozenieId });
             }

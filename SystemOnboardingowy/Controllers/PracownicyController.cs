@@ -16,10 +16,42 @@ namespace SystemOnboardingowy.Controllers
             _context = context;
         }
 
-        // GET: Pracownicy (Lista)
-        public async Task<IActionResult> Index()
+        // GET: Pracownicy (Lista z filtrowaniem i sortowaniem)
+        public async Task<IActionResult> Index(string sortOrder, string searchString)
         {
-            return View(await _context.Pracownicy.ToListAsync());
+            // Przekazanie parametrów sortowania do widoku (do nagłówków tabeli)
+            ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["PosSortParm"] = sortOrder == "Position" ? "position_desc" : "Position";
+            ViewData["CurrentFilter"] = searchString;
+
+            var workers = _context.Pracownicy.AsQueryable();
+
+            // 1. Filtrowanie (Wyszukiwanie)
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                workers = workers.Where(s => s.Nazwisko.Contains(searchString)
+                                          || s.Imie.Contains(searchString)
+                                          || s.Stanowisko.Contains(searchString));
+            }
+
+            // 2. Sortowanie
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    workers = workers.OrderByDescending(s => s.Nazwisko);
+                    break;
+                case "Position":
+                    workers = workers.OrderBy(s => s.Stanowisko);
+                    break;
+                case "position_desc":
+                    workers = workers.OrderByDescending(s => s.Stanowisko);
+                    break;
+                default:
+                    workers = workers.OrderBy(s => s.Nazwisko); // Domyślne sortowanie
+                    break;
+            }
+
+            return View(await workers.ToListAsync());
         }
 
         // GET: Pracownicy/Create
