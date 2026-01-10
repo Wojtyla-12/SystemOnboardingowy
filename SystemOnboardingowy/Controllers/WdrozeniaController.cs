@@ -14,6 +14,7 @@ namespace SystemOnboardingowy.Controllers
 
         public WdrozeniaController(OnboardingContext context) { _context = context; }
 
+        // GET: Wdrozenia
         public async Task<IActionResult> Index(bool pokazZakonczone = false)
         {
             var query = _context.Wdrozenia
@@ -44,6 +45,7 @@ namespace SystemOnboardingowy.Controllers
             return View(lista);
         }
 
+        // GET: Wdrozenia/Details/5
         public async Task<IActionResult> Details(int id)
         {
             var wdrozenie = await _context.Wdrozenia
@@ -56,6 +58,142 @@ namespace SystemOnboardingowy.Controllers
             wdrozenie.Notatki = wdrozenie.Notatki.OrderByDescending(n => n.DataUtworzenia).ToList();
 
             return View(wdrozenie);
+        }
+
+        // GET: Wdrozenia/Create
+        [Authorize(Roles = "Kierownik")]
+        public IActionResult Create()
+        {
+            var model = new WdrozenieCreateViewModel
+            {
+                PracownicyLista = _context.Pracownicy.Select(p => new SelectListItem
+                {
+                    Value = p.Id.ToString(),
+                    Text = p.ImieNazwisko
+                }).ToList()
+            };
+            return View(model);
+        }
+
+        // POST: Wdrozenia/Create
+        [HttpPost]
+        [Authorize(Roles = "Kierownik")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(WdrozenieCreateViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                // 1. Tworzymy obiekt encji bazodanowej
+                var wdrozenie = new Wdrozenie
+                {
+                    PracownikId = model.PracownikId,
+                    DataRozpoczeciaPracy = model.DataRozpoczeciaPracy,
+                    DataUtworzenia = DateTime.Now,
+                    Status = StatusZgloszenia.Nowe,
+                    Stanowisko = model.Stanowisko,
+                    WymaganyVPN = model.WymaganyVPN,
+                    AdresyEmail = model.AdresyEmail
+                };
+
+                // 2. Budujemy listy stringów do zapisu w bazie (dla informacji)
+                var sprzetList = new List<string>();
+                if (model.Sprzet_PC) sprzetList.Add("PC Stacjonarny");
+                if (model.Sprzet_Laptop) sprzetList.Add("Laptop");
+                if (model.Sprzet_Monitor) sprzetList.Add("Monitor");
+                if (model.Sprzet_Myszka) sprzetList.Add("Myszka/Klawiatura");
+                if (model.Sprzet_Sluchawki) sprzetList.Add("Słuchawki");
+                if (model.Sprzet_Telefon) sprzetList.Add("Telefon");
+                wdrozenie.WybranySprzet = string.Join(", ", sprzetList);
+
+                var dyskiList = new List<string>();
+                if (model.Dysk_Ksiegowosc) dyskiList.Add("Księgowość");
+                if (model.Dysk_Handel) dyskiList.Add("Handel");
+                if (model.Dysk_Staz) dyskiList.Add("Staż");
+                if (model.Dysk_HR) dyskiList.Add("HR");
+                if (model.Dysk_OfficeManager) dyskiList.Add("Office Manager");
+                if (model.Dysk_Wspolny) dyskiList.Add("Wspólny");
+                wdrozenie.DostepDoDyskow = string.Join(", ", dyskiList);
+
+                _context.Add(wdrozenie);
+                await _context.SaveChangesAsync(); // Zapisujemy, żeby dostać ID wdrożenia
+
+                // 3. GENEROWANIE ZADAŃ
+                var zadania = new List<ZadanieWdrozeniowe>();
+
+                // Zadania dla Sprzętowca - każde urządzenie to osobne zadanie
+                foreach (var item in sprzetList)
+                {
+                    zadania.Add(new ZadanieWdrozeniowe
+                    {
+                        WdrozenieId = wdrozenie.Id,
+                        Dzial = Dzial.Sprzet,
+                        Tresc = $"Wydać/Zakupić: {item}",
+                        CzyWykonane = false
+                    });
+                }
+
+                // Zadania dla IT
+                if (!string.IsNullOrWhiteSpace(model.AdresyEmail))
+                {
+                    zadania.Add(new ZadanieWdrozeniowe
+                    {
+                        WdrozenieId = wdrozenie.Id,
+                        Dzial = Dzial.IT,
+                        Tresc = $"Utworzyć adresy email: {model.AdresyEmail}",
+                        CzyWykonane = false
+                    });
+                }
+
+                if (model.WymaganyVPN)
+                {
+                    zadania.Add(new ZadanieWdrozeniowe
+                    {
+                        WdrozenieId = wdrozenie.Id,
+                        Dzial = Dzial.IT,
+                        Tresc = "Skonfigurować dostęp VPN",
+                        CzyWykonane = false
+                    });
+                }
+
+                // Każdy dysk jako osobne zadanie dla IT
+                foreach (var dysk in dyskiList)
+                {
+                    zadania.Add(new ZadanieWdrozeniowe
+                    {
+                        WdrozenieId = wdrozenie.Id,
+                        Dzial = Dzial.IT,
+                        Tresc = $"Nadać uprawnienia do dysku: {dysk}",
+                        CzyWykonane = false
+                    });
+                }
+
+                // Zadanie dla HR
+                zadania.Add(new ZadanieWdrozeniowe
+                {
+                    WdrozenieId = wdrozenie.Id,
+                    Dzial = Dzial.HR,
+                    Tresc = "Przygotować umowę i szkolenie BHP",
+                    CzyWykonane = false
+                });
+
+                _context.ZadaniaWdrozeniowe.AddRange(zadania);
+
+                // Notatka startowa
+                _context.Notatki.Add(new Notatka
+                {
+                    WdrozenieId = wdrozenie.Id,
+                    Tresc = $"Utworzono wdrożenie dla stanowiska: {model.Stanowisko}. Start: {wdrozenie.DataRozpoczeciaPracy:d}",
+                    Autor = User.Identity.Name,
+                    CzyAutomatyczna = true
+                });
+
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Reload listy w przypadku błędu walidacji
+            model.PracownicyLista = _context.Pracownicy.Select(p => new SelectListItem { Value = p.Id.ToString(), Text = p.ImieNazwisko }).ToList();
+            return View(model);
         }
 
         [HttpPost]
@@ -89,34 +227,6 @@ namespace SystemOnboardingowy.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Roles = "Kierownik")]
-        public IActionResult Create()
-        {
-            ViewData["PracownikId"] = new SelectList(_context.Pracownicy, "Id", "ImieNazwisko");
-            return View();
-        }
-
-        [HttpPost]
-        [Authorize(Roles = "Kierownik")]
-        public async Task<IActionResult> Create(Wdrozenie wdrozenie)
-        {
-            wdrozenie.DataUtworzenia = DateTime.Now;
-            wdrozenie.Status = StatusZgloszenia.Nowe;
-            _context.Add(wdrozenie);
-            await _context.SaveChangesAsync();
-
-            var zadania = new List<ZadanieWdrozeniowe> {
-                new() { WdrozenieId = wdrozenie.Id, Dzial = Dzial.IT, Tresc = "Konto AD, Email, VPN", CzyWykonane = false },
-                new() { WdrozenieId = wdrozenie.Id, Dzial = Dzial.Sprzet, Tresc = "Laptop, Monitor, Telefon", CzyWykonane = false },
-                new() { WdrozenieId = wdrozenie.Id, Dzial = Dzial.HR, Tresc = "Umowa i BHP", CzyWykonane = false }
-            };
-            _context.ZadaniaWdrozeniowe.AddRange(zadania);
-            _context.Notatki.Add(new Notatka { WdrozenieId = wdrozenie.Id, Tresc = $"Utworzono. Start: {wdrozenie.DataRozpoczeciaPracy:d}", Autor = User.Identity.Name, CzyAutomatyczna = true });
-
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
         [HttpPost]
         public async Task<IActionResult> WykonajZadanie(int zadanieId)
         {
@@ -135,6 +245,8 @@ namespace SystemOnboardingowy.Controllers
                 await _context.SaveChangesAsync();
 
                 var wdrozenie = await _context.Wdrozenia.Include(w => w.Zadania).FirstOrDefaultAsync(w => w.Id == zadanie.WdrozenieId);
+
+                // Logika automatycznej zmiany statusu
                 if (wdrozenie.Zadania.All(z => z.CzyWykonane))
                 {
                     wdrozenie.Status = StatusZgloszenia.Zakonczone;

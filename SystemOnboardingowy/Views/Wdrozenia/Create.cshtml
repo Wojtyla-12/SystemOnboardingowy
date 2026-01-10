@@ -1,14 +1,94 @@
-﻿@model SystemOnboardingowy.Models.Wdrozenie
+﻿@model SystemOnboardingowy.Models.WdrozenieCreateViewModel
+
 @{
-    ViewData["Title"] = "Nowy Ticket";
+    ViewData["Title"] = "Nowe Wdrożenie";
 }
-<h2>Nowy Ticket</h2>
-<div class="row">
-    <div class="col-md-5">
-        <form asp-action="Create">
-            <div class="mb-3"><label>Pracownik</label><select asp-for="PracownikId" class="form-select" asp-items="ViewBag.PracownikId"></select></div>
-            <div class="mb-3"><label>Start pracy</label><input asp-for="DataRozpoczeciaPracy" type="date" class="form-control" /></div>
-            <button class="btn btn-success">Utwórz</button> <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
-        </form>
-    </div>
+
+<div class="container mt-4">
+    <h2>🚀 Nowe Wdrożenie Pracownika</h2>
+    <hr />
+
+    <form asp-action="Create">
+        <div class="row">
+            <div class="col-md-6">
+                <h4 class="mb-3 text-secondary">Dane Podstawowe</h4>
+
+                <div class="form-group mb-3">
+                    <label asp-for="PracownikId" class="control-label fw-bold"></label>
+                    <select asp-for="PracownikId" class="form-select" asp-items="Model.PracownicyLista"></select>
+                    <span asp-validation-for="PracownikId" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Stanowisko" class="control-label fw-bold"></label>
+                    <select asp-for="Stanowisko" class="form-select" asp-items="Html.GetEnumSelectList<SystemOnboardingowy.Models.StanowiskoWdrozeniowe>()"></select>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="DataRozpoczeciaPracy" class="control-label fw-bold"></label>
+                    <input asp-for="DataRozpoczeciaPracy" class="form-control" />
+                    <span asp-validation-for="DataRozpoczeciaPracy" class="text-danger"></span>
+                </div>
+
+                <hr class="my-4" />
+
+                <h4 class="mb-3 text-secondary">Dostępy IT</h4>
+
+                <div class="form-group mb-3">
+                    <label asp-for="AdresyEmail" class="control-label fw-bold"></label>
+                    <input asp-for="AdresyEmail" class="form-control" placeholder="np. jan.kowalski@firma.pl, sprzedaz@firma.pl" />
+                    <small class="text-muted">Możesz wpisać kilka adresów oddzielając je przecinkami.</small>
+                    <span asp-validation-for="AdresyEmail" class="text-danger"></span>
+                </div>
+
+                <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+                    <input class="form-check-input" type="checkbox" asp-for="WymaganyVPN" style="margin-left: 0.1rem; margin-right: 0.5rem;" />
+                    <label class="form-check-label fw-bold" asp-for="WymaganyVPN"></label>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">🖥️ Wymagany Sprzęt</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check"><input class="form-check-input" asp-for="Sprzet_PC" /> <label asp-for="Sprzet_PC">Komputer Stacjonarny</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Sprzet_Laptop" /> <label asp-for="Sprzet_Laptop">Laptop</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Sprzet_Monitor" /> <label asp-for="Sprzet_Monitor">Monitor</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Sprzet_Myszka" /> <label asp-for="Sprzet_Myszka">Myszka / Klawiatura</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Sprzet_Sluchawki" /> <label asp-for="Sprzet_Sluchawki">Słuchawki</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Sprzet_Telefon" /> <label asp-for="Sprzet_Telefon">Telefon służbowy</label></div>
+                    </div>
+                </div>
+
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">📂 Dostępy do dysków (Share)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check"><input class="form-check-input" asp-for="Dysk_Ksiegowosc" /> <label asp-for="Dysk_Ksiegowosc">Dysk Księgowość</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Dysk_Handel" /> <label asp-for="Dysk_Handel">Dysk Handel</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Dysk_Staz" /> <label asp-for="Dysk_Staz">Dysk Staż</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Dysk_HR" /> <label asp-for="Dysk_HR">Dysk HR</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Dysk_OfficeManager" /> <label asp-for="Dysk_OfficeManager">Dysk Office Manager</label></div>
+                        <div class="form-check"><input class="form-check-input" asp-for="Dysk_Wspolny" /> <label asp-for="Dysk_Wspolny">Dysk Wspólny</label></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+            <a asp-action="Index" class="btn btn-secondary me-md-2">Anuluj</a>
+            <button type="submit" class="btn btn-success btn-lg px-5">Utwórz Wdrożenie</button>
+        </div>
+    </form>
 </div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
