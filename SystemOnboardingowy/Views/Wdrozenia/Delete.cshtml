@@ -1,0 +1,11 @@
+﻿@model SystemOnboardingowy.Models.Wdrozenie
+@{
+    ViewData["Title"] = "Usuń";
+}
+<h2 class="text-danger">Usuń Wdrożenie</h2>
+<div class="alert alert-warning">Usunięcie wdrożenia skasuje też wszystkie zadania!</div>
+<form asp-action="Delete">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Tak, usuń trwale</button>
+    <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
+</form>

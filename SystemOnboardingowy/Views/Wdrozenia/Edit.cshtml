@@ -1,0 +1,12 @@
+﻿@model SystemOnboardingowy.Models.Wdrozenie
+@{
+    ViewData["Title"] = "Edycja";
+}
+<h2>Edytuj Wdrożenie</h2>
+<form asp-action="Edit">
+    <input type="hidden" asp-for="Id" />
+    <div class="mb-3"><label>Pracownik</label><select asp-for="PracownikId" class="form-select" asp-items="ViewBag.PracownikId"></select></div>
+    <div class="mb-3"><label>Start</label><input asp-for="DataRozpoczecia" class="form-control" /></div>
+    <div class="mb-3"><label>Notatki</label><textarea asp-for="Notatki" class="form-control"></textarea></div>
+    <button type="submit" class="btn btn-primary">Zapisz</button>
+</form>

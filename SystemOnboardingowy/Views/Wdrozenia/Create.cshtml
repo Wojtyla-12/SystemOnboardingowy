@@ -1,0 +1,11 @@
+﻿@model SystemOnboardingowy.Models.Wdrozenie
+@{
+    ViewData["Title"] = "Nowe";
+}
+<h2>Nowe Zgłoszenie</h2>
+<form asp-action="Create">
+    <div class="mb-3"><label>Pracownik</label><select asp-for="PracownikId" class="form-select" asp-items="ViewBag.PracownikId"></select></div>
+    <div class="mb-3"><label>Start</label><input asp-for="DataRozpoczecia" type="date" class="form-control" /></div>
+    <div class="mb-3"><label>Notatki</label><textarea asp-for="Notatki" class="form-control"></textarea></div>
+    <button type="submit" class="btn btn-success">Utwórz</button>
+</form>

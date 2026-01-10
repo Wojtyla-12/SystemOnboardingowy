@@ -1,0 +1,33 @@
+﻿@model IEnumerable<SystemOnboardingowy.Models.ZadanieWdrozeniowe>
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h2>📋 Zadania do wykonania dla Twojego działu</h2>
+@if (!Model.Any())
+{
+    <div class="alert alert-success">🎉 Brak zaległych zadań!</div>
+}
+else
+{
+    <div class="row">
+        @foreach (var item in Model)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 ramka">
+                    <div class="card-header back">
+                        <strong>@item.DzialOdpowiedzialny</strong> | Start: @item.Wdrozenie.DataRozpoczecia.ToShortDateString()
+                    </div>
+                    <div class="card-body">
+                        <h5>@item.Wdrozenie.Pracownik.Imie @item.Wdrozenie.Pracownik.Nazwisko</h5>
+                        <p class="text-muted">@item.Wdrozenie.Pracownik.Stanowisko</p>
+                        <hr /><p>👉 <strong>@item.TrescZadania</strong></p>
+                    </div>
+                    <div class="card-footer bg-transparent box">
+                        <a asp-action="Details" asp-route-id="@item.WdrozenieId" class="btn btn-primary w-100">Przejdź do realizacji ➡️</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

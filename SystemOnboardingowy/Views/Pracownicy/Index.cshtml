@@ -1,0 +1,27 @@
+﻿@model IEnumerable<SystemOnboardingowy.Models.Pracownik>
+@{
+    ViewData["Title"] = "Pracownicy";
+}
+
+<h1>Baza Pracowników</h1>
+<p><a asp-action="Create" class="btn btn-success">➕ Dodaj Pracownika</a></p>
+
+<table class="table">
+    <thead>
+        <tr><th>Imię i Nazwisko</th><th>Stanowisko</th><th>Email</th><th>Akcje</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Imie @item.Nazwisko</td>
+                <td>@item.Stanowisko</td>
+                <td>@item.Email</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Edytuj</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Usuń</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

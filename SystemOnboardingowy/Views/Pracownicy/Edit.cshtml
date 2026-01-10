@@ -1,0 +1,19 @@
+﻿@model SystemOnboardingowy.Models.Pracownik
+@{
+    ViewData["Title"] = "Edycja";
+}
+<h2>Edytuj Pracownika</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <input type="hidden" asp-for="Id" />
+            <div class="mb-3"><label>Imię</label><input asp-for="Imie" class="form-control" /></div>
+            <div class="mb-3"><label>Nazwisko</label><input asp-for="Nazwisko" class="form-control" /></div>
+            <div class="mb-3"><label>Stanowisko</label><input asp-for="Stanowisko" class="form-control" /></div>
+            <div class="mb-3"><label>Email</label><input asp-for="Email" class="form-control" /></div>
+            <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+            <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,102 @@
+﻿@model IEnumerable<SystemOnboardingowy.Models.Wdrozenie>
+@{
+    ViewData["Title"] = "Wdrożenia";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Lista Wdrożeń</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="MojeZadania" class="btn btn-outline-info">📋 Zadania mojego działu</a>
+        @if (User.IsInRole("Kierownik"))
+        {
+            <a asp-action="Create" class="btn btn-primary">➕ Nowe</a>
+        }
+    </div>
+</div>
+
+<form asp-action="Index" method="get" class="mb-4">
+    <div class="input-group">
+        <input type="text" name="searchString" value="@ViewData["CurrentFilter"]" class="form-control" placeholder="Szukaj po nazwisku pracownika..." />
+        <button type="submit" class="btn btn-primary">🔍 Szukaj</button>
+        @if (ViewData["CurrentFilter"] != null)
+        {
+            <a asp-action="Index" class="btn btn-secondary">Wyczyść</a>
+        }
+    </div>
+</form>
+
+<table class="table table-hover align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>Pracownik</th>
+            <th>Data Startu</th>
+            <th style="width: 25%">Postęp</th>
+            <th style="width: 20%">Notatki</th>
+            <th>Status</th>
+            <th>Akcje</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            int total = item.Zadania != null ? item.Zadania.Count : 0;
+            int done = item.Zadania != null ? item.Zadania.Count(x => x.CzyWykonane) : 0;
+            int percent = total > 0 ? (int)((double)done / total * 100) : 0;
+            string colorClass = percent == 100 ? "bg-success" : (percent < 30 ? "bg-danger" : "bg-warning text-dark");
+
+            <tr>
+                <td><strong>@item.Pracownik?.Imie @item.Pracownik?.Nazwisko</strong><br /><small class="text-muted">@item.Pracownik?.Stanowisko</small></td>
+                <td>@item.DataRozpoczecia.ToShortDateString()</td>
+                <td>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar @colorClass" role="progressbar" style="width: @percent%;">@percent%</div>
+                    </div>
+                    <small class="text-muted">@done / @total zadań</small>
+                </td>
+                <td>
+                    @if (User.IsInRole("Kierownik") || User.IsInRole("HR"))
+                    {
+                        <form asp-action="ZapiszNotatkeWdrozenia" method="post" class="d-flex">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <div class="input-group input-group-sm">
+                                <input type="text" name="notatka" value="@item.Notatki" class="form-control" placeholder="..." />
+                                <button type="submit" class="btn btn-outline-secondary">💾</button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+
+                        <span class="text-muted">@item.Notatki</span>
+                    }
+                </td>
+                <td>
+                    @if (item.Status == SystemOnboardingowy.Models.StatusWdrozenia.Zakonczone)
+                    {
+                        <span class="badge bg-success">Zakończone</span>
+                    }
+                    else if (item.Status == SystemOnboardingowy.Models.StatusWdrozenia.WToku)
+                    {
+
+                        <span class="badge bg-warning text-dark">W Toku</span>
+                    }
+                    else
+                    {
+
+                        <span class="badge bg-secondary">Nowe</span>
+                    }
+                </td>
+                <td>
+                    <div class="btn-group">
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">Szczegóły</a>
+                        @if (User.IsInRole("Kierownik"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">✏️</a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">🗑️</a>
+                        }
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
