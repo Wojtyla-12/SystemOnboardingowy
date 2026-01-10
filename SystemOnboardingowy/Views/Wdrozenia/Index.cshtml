@@ -1,157 +1,88 @@
 ﻿@model IEnumerable<SystemOnboardingowy.Models.Wdrozenie>
 @{
-    ViewData["Title"] = "Wdrożenia";
-    // Pobieramy listę wszystkich dostępnych działów (HR, IT, Sprzet)
-    var dostepneDzialy = Enum.GetValues(typeof(SystemOnboardingowy.Models.Dzial)).Cast<SystemOnboardingowy.Models.Dzial>();
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Lista Wdrożeń</h1>
-    <div class="d-flex gap-2">
-        <a asp-action="MojeZadania" class="btn btn-outline-info">📋 Zadania mojego działu</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🚀 Dashboard Onboarding</h2>
+    <div>
+        <a href="@Url.Action("Index", new { pokazZakonczone = !(bool)ViewData["PokazZakonczone"] })" class="btn btn-outline-secondary btn-sm">
+            @((bool)ViewData["PokazZakonczone"] ? "👁️ Ukryj zakończone" : "📜 Pokaż archiwum")
+        </a>
         @if (User.IsInRole("Kierownik"))
         {
-            <a asp-action="Create" class="btn btn-primary">➕ Nowe</a>
+            <a asp-action="Create" class="btn btn-primary ms-2">➕ Nowy Ticket</a>
         }
     </div>
 </div>
 
-<div class="card bg-dark border-secondary mb-4 p-3">
-    <form asp-action="Index" method="get" class="row g-2 align-items-center">
-        <div class="col-md-6">
-            <div class="input-group">
-                <span class="input-group-text bg-secondary text-light border-secondary">Osoba</span>
-                <input type="text" name="searchString" value="@ViewData["CurrentFilter"]" class="form-control bg-dark text-light border-secondary" placeholder="Nazwisko lub imię..." />
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="input-group">
-                <span class="input-group-text bg-secondary text-light border-secondary">Status</span>
-                <select name="statusFilter" class="form-select bg-dark text-light border-secondary"
-                        asp-items="Html.GetEnumSelectList<SystemOnboardingowy.Models.StatusWdrozenia>()">
-                    <option value="">-- Wszystkie --</option>
-                </select>
-            </div>
-        </div>
-        <div class="col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary w-100">Filtruj</button>
-            <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
-        </div>
-    </form>
-</div>
+<div class="row">
+    @foreach (var item in Model)
+    {
+        // Sprawdzamy zadania używając nowych nazw właściwości (z.Dzial zamiast z.DzialOdpowiedzialny)
+        var działyNiewykonane = item.Zadania.Where(z => !z.CzyWykonane).Select(z => z.Dzial).Distinct().ToList();
 
-<table class="table table-hover align-middle">
-    <thead class="table-dark">
-        <tr>
-            <th>Pracownik</th>
-            <th>Data Startu</th>
-            <th style="width: 40%">Statusy Działów</th>
-            <th style="width: 15%">Notatki</th>
-            <th>Status</th>
-            <th>Akcje</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            // Sprawdzamy, czy zalogowany użytkownik ma pilne zadania w tym wierszu
-            bool isUrgentForMe = false;
-            if (User.IsInRole("IT") && item.Zadania.Any(z => z.DzialOdpowiedzialny == SystemOnboardingowy.Models.Dzial.IT && !z.CzyWykonane)) { isUrgentForMe = true; }
-            if (User.IsInRole("HR") && item.Zadania.Any(z => z.DzialOdpowiedzialny == SystemOnboardingowy.Models.Dzial.HR && !z.CzyWykonane)) { isUrgentForMe = true; }
-            if (User.IsInRole("Sprzet") && item.Zadania.Any(z => z.DzialOdpowiedzialny == SystemOnboardingowy.Models.Dzial.Sprzet && !z.CzyWykonane)) { isUrgentForMe = true; }
+        bool pilneDlaMnie = false;
+        if (User.IsInRole("IT") && działyNiewykonane.Contains(SystemOnboardingowy.Models.Dzial.IT)) pilneDlaMnie = true;
+        if (User.IsInRole("HR") && działyNiewykonane.Contains(SystemOnboardingowy.Models.Dzial.HR)) pilneDlaMnie = true;
+        if (User.IsInRole("Sprzet") && działyNiewykonane.Contains(SystemOnboardingowy.Models.Dzial.Sprzet)) pilneDlaMnie = true;
 
-            <tr class="@(isUrgentForMe ? "border-start border-4 border-warning" : "")">
-                <td>
-                    <strong>@item.Pracownik?.Imie @item.Pracownik?.Nazwisko</strong><br />
-                    <small class="text-muted">@item.Pracownik?.Stanowisko</small>
-                    @if (isUrgentForMe)
-                    {
-                        <br />
-                        <span class="badge bg-warning text-dark mt-1">Twój ruch!</span>
-     }
-                </td>
-                <td>@item.DataRozpoczecia.ToShortDateString()</td>
-
-                <td>
-                    <div class="d-flex flex-wrap gap-2">
-                        @foreach (var dzial in dostepneDzialy)
-                        {
-                            // Wyciągamy zadania tylko dla konkretnego działu w tej pętli
-                            var zadaniaDzialu = item.Zadania?.Where(z => z.DzialOdpowiedzialny == dzial).ToList();
-
-                            if (zadaniaDzialu != null && zadaniaDzialu.Any())
+        <div class="col-12 mb-3">
+            <div class="card @(pilneDlaMnie ? "border-warning border-3 shadow" : "border-secondary")" style="background-color: #1e1e1e; color: #fff;">
+                <div class="card-body d-flex align-items-center justify-content-between flex-wrap">
+                    <div style="min-width: 200px;">
+                        <h5 class="card-title mb-1">
+                            @item.Pracownik?.Imie @item.Pracownik?.Nazwisko
+                            @if (pilneDlaMnie)
                             {
-                                int wykonane = zadaniaDzialu.Count(z => z.CzyWykonane);
-                                int wszystkie = zadaniaDzialu.Count;
-                                bool czyWszystkoZrobione = wykonane == wszystkie;
+                                <span class="badge bg-warning text-dark ms-2">TWOJA KOLEJ!</span>
+                            }
+                            @if (item.Status == SystemOnboardingowy.Models.StatusZgloszenia.Anulowane)
+                            {
+                                <span class="badge bg-danger ms-2">ANULOWANE</span>
+                            }
+                        </h5>
+                        <p class="card-text text-muted small mb-0">Zgłoszono: @item.DataUtworzenia.ToString("dd.MM HH:mm")</p>
+                    </div>
+                    <div class="d-flex gap-2 my-2">
+                        @if (item.Status == SystemOnboardingowy.Models.StatusZgloszenia.Zakonczone)
+                        {
+                            <span class="badge bg-success p-2">ZAKOŃCZONE</span>
+                        }
+                        else if (item.Status != SystemOnboardingowy.Models.StatusZgloszenia.Anulowane)
+                        {
+                            @if (działyNiewykonane.Contains(SystemOnboardingowy.Models.Dzial.HR))
+                            {
+                                <span class="badge bg-danger p-2">HR</span>
+                            }
+                            else
+                            {
 
-                                // Ustalanie stylu kafelka
-                                string badgeClass = czyWszystkoZrobione ? "bg-success border-success" : "bg-dark border-warning text-warning";
-                                string icon = czyWszystkoZrobione ? "✔" : "⏳";
+                                <span class="badge bg-dark border border-secondary p-2">HR OK</span>
+                            }
+                            @if (działyNiewykonane.Contains(SystemOnboardingowy.Models.Dzial.IT))
+                            {
+                                <span class="badge bg-info text-dark p-2">IT</span>
+                            }
+                            else
+                            {
 
-                                // Wygląd kafelka
-                                <div class="border rounded p-1 px-2 d-flex align-items-center gap-2 @badgeClass" style="min-width: 110px;">
-                                    <div style="font-weight:bold;">@dzial</div>
-                                    <div class="ms-auto small">
-                                        @if (czyWszystkoZrobione)
-                                        {
-                                            <span>Gotowe</span>
-                                        }
-                                        else
-                                        {
-                                            <span>@wykonane / @wszystkie</span>
-                                        }
-                                    </div>
-                                </div>
+                                <span class="badge bg-dark border border-secondary p-2">IT OK</span>
+                            }
+                            @if (działyNiewykonane.Contains(SystemOnboardingowy.Models.Dzial.Sprzet))
+                            {
+                                <span class="badge bg-warning text-dark p-2">Sprzęt</span>
+                            }
+                            else
+                            {
+
+                                <span class="badge bg-dark border border-secondary p-2">Sprzęt OK</span>
                             }
                         }
                     </div>
-                </td>
-
-                <td>
-                    @if (User.IsInRole("Kierownik") || User.IsInRole("HR"))
-                    {
-                        <form asp-action="ZapiszNotatkeWdrozenia" method="post" class="d-flex">
-                            <input type="hidden" name="id" value="@item.Id" />
-                            <div class="input-group input-group-sm">
-                                <input type="text" name="notatka" value="@item.Notatki" class="form-control bg-dark text-light border-secondary" placeholder="..." />
-                                <button type="submit" class="btn btn-outline-secondary">💾</button>
-                            </div>
-                        </form>
-                    }
-                    else
-                    {
-
-                        <span class="text-muted">@item.Notatki</span>
-                    }
-                </td>
-                <td>
-                    @if (item.Status == SystemOnboardingowy.Models.StatusWdrozenia.Zakonczone)
-                    {
-                        <span class="badge bg-success">Zakończone</span>
-                    }
-                    else if (item.Status == SystemOnboardingowy.Models.StatusWdrozenia.WToku)
-                    {
-
-                        <span class="badge bg-warning text-dark">W Toku</span>
-                    }
-                    else
-                    {
-
-                        <span class="badge bg-secondary">Nowe</span>
-                    }
-                </td>
-                <td>
-                    <div class="btn-group">
-                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">Szczegóły</a>
-                        @if (User.IsInRole("Kierownik"))
-                        {
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">✏️</a>
-                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">🗑️</a>
-                        }
-                    </div>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                    <div><a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-light">Szczegóły ➡️</a></div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

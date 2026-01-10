@@ -1,9 +1,11 @@
 ﻿@model IEnumerable<SystemOnboardingowy.Models.ZadanieWdrozeniowe>
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Moje Zadania";
 }
 
 <h2>📋 Zadania do wykonania dla Twojego działu</h2>
+<p class="text-muted">Lista otwartych zadań przypisanych do Twojej roli.</p>
+
 @if (!Model.Any())
 {
     <div class="alert alert-success">🎉 Brak zaległych zadań!</div>
@@ -13,17 +15,19 @@ else
     <div class="row">
         @foreach (var item in Model)
         {
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 ramka">
-                    <div class="card-header back">
-                        <strong>@item.DzialOdpowiedzialny</strong> | Start: @item.Wdrozenie.DataRozpoczecia.ToShortDateString()
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 border-warning">
+                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                        <strong>@item.Dzial</strong>
+                        <small>Start: @item.Wdrozenie.DataRozpoczeciaPracy.ToShortDateString()</small>
                     </div>
                     <div class="card-body">
-                        <h5>@item.Wdrozenie.Pracownik.Imie @item.Wdrozenie.Pracownik.Nazwisko</h5>
-                        <p class="text-muted">@item.Wdrozenie.Pracownik.Stanowisko</p>
-                        <hr /><p>👉 <strong>@item.TrescZadania</strong></p>
+                        <h5 class="card-title">@item.Wdrozenie.Pracownik.Imie @item.Wdrozenie.Pracownik.Nazwisko</h5>
+                        <p class="card-text text-muted">@item.Wdrozenie.Pracownik.Stanowisko</p>
+                        <hr />
+                        <p class="card-text" style="font-size: 1.1em;">👉 <strong>@item.Tresc</strong></p>
                     </div>
-                    <div class="card-footer bg-transparent box">
+                    <div class="card-footer bg-transparent border-warning text-center">
                         <a asp-action="Details" asp-route-id="@item.WdrozenieId" class="btn btn-primary w-100">Przejdź do realizacji ➡️</a>
                     </div>
                 </div>

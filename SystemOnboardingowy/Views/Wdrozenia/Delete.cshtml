@@ -2,10 +2,30 @@
 @{
     ViewData["Title"] = "Usuń";
 }
-<h2 class="text-danger">Usuń Wdrożenie</h2>
-<div class="alert alert-warning">Usunięcie wdrożenia skasuje też wszystkie zadania!</div>
+
+<h2 class="text-danger">Usuwanie Wdrożenia</h2>
+<div class="alert alert-warning">
+    <strong>Uwaga!</strong> Ta operacja usunie trwale wdrożenie oraz całą jego historię i zadania.
+</div>
+
+<div class="card bg-dark text-white border-danger mb-4" style="max-width: 600px;">
+    <div class="card-header bg-danger text-white">Potwierdzenie</div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4">Pracownik</dt>
+            <dd class="col-sm-8">@Model.Pracownik?.Imie @Model.Pracownik?.Nazwisko</dd>
+
+            <dt class="col-sm-4">Start pracy</dt>
+            <dd class="col-sm-8">@Model.DataRozpoczeciaPracy.ToShortDateString()</dd>
+
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">@Model.Status</dd>
+        </dl>
+    </div>
+</div>
+
 <form asp-action="Delete">
     <input type="hidden" asp-for="Id" />
-    <button type="submit" class="btn btn-danger">Tak, usuń trwale</button>
+    <button type="submit" class="btn btn-danger">🗑️ Usuń trwale</button>
     <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
 </form>

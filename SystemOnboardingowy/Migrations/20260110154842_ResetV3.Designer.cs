@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SystemOnboardingowy.Data;
 
@@ -11,9 +12,11 @@ using SystemOnboardingowy.Data;
 namespace SystemOnboardingowy.Migrations
 {
     [DbContext(typeof(OnboardingContext))]
-    partial class OnboardingContextModelSnapshot : ModelSnapshot
+    [Migration("20260110154842_ResetV3")]
+    partial class ResetV3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
