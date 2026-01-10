@@ -39,7 +39,7 @@
             if (User.IsInRole("HR") && zadanie.DzialOdpowiedzialny.ToString() == "HR") { canEdit = true; }
             if (User.IsInRole("Sprzet") && zadanie.DzialOdpowiedzialny.ToString() == "Sprzet") { canEdit = true; }
 
-            <tr class="@(zadanie.CzyWykonane ? "table-active" : "")">
+            <tr class="@(zadanie.CzyWykonane ? "backcard" : "")">
                 <td><span class="badge bg-info text-dark">@zadanie.DzialOdpowiedzialny</span></td>
                 <td>@zadanie.TrescZadania</td>
                 <td>

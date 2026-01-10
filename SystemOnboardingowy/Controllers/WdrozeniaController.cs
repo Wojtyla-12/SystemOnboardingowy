@@ -17,26 +17,69 @@ namespace SystemOnboardingowy.Controllers
             _context = context;
         }
 
-        // --- 1. LISTA WDROŻEŃ (Z WYSZUKIWARKĄ I PASKIEM POSTĘPU) ---
-        public async Task<IActionResult> Index(string searchString)
+        // --- 1. LISTA WDROŻEŃ (Z FILTROWANIEM I INTELIGENTNYM SORTOWANIEM) ---
+        public async Task<IActionResult> Index(string searchString, StatusWdrozenia? statusFilter)
         {
-            // Pobieramy wdrożenia, pracownika oraz ZADANIA (kluczowe dla paska postępu)
-            var wdrozenia = _context.Wdrozenia
+            // 1. Pobieranie danych (Eager Loading)
+            var query = _context.Wdrozenia
                 .Include(w => w.Pracownik)
                 .Include(w => w.Zadania)
                 .AsQueryable();
 
-            // Logika wyszukiwania
+            // 2. Filtrowanie po nazwisku (Search)
             if (!string.IsNullOrEmpty(searchString))
             {
-                wdrozenia = wdrozenia.Where(s => s.Pracownik.Nazwisko.Contains(searchString)
-                                              || s.Pracownik.Imie.Contains(searchString));
+                query = query.Where(s => s.Pracownik.Nazwisko.Contains(searchString)
+                                      || s.Pracownik.Imie.Contains(searchString));
             }
 
-            // Zapamiętanie frazy w widoku
-            ViewData["CurrentFilter"] = searchString;
+            // 3. Filtrowanie po statusie
+            if (statusFilter.HasValue)
+            {
+                query = query.Where(w => w.Status == statusFilter.Value);
+            }
 
-            return View(await wdrozenia.ToListAsync());
+            // Pobieramy listę do pamięci, aby wykonać skomplikowane sortowanie zależne od ról
+            var listaWdrozen = await query.ToListAsync();
+
+            // 4. INTELIGENTNE SORTOWANIE
+            // Logika: Jeśli wdrożenie ma niewykonane zadania dla MOJEGO działu -> Idzie na samą górę.
+
+            if (User.IsInRole("IT"))
+            {
+                listaWdrozen = listaWdrozen
+                    .OrderByDescending(w => w.Zadania.Any(z => z.DzialOdpowiedzialny == Dzial.IT && !z.CzyWykonane))
+                    .ThenBy(w => w.DataRozpoczecia)
+                    .ToList();
+            }
+            else if (User.IsInRole("HR"))
+            {
+                listaWdrozen = listaWdrozen
+                    .OrderByDescending(w => w.Zadania.Any(z => z.DzialOdpowiedzialny == Dzial.HR && !z.CzyWykonane))
+                    .ThenBy(w => w.DataRozpoczecia)
+                    .ToList();
+            }
+            else if (User.IsInRole("Sprzet"))
+            {
+                listaWdrozen = listaWdrozen
+                    .OrderByDescending(w => w.Zadania.Any(z => z.DzialOdpowiedzialny == Dzial.Sprzet && !z.CzyWykonane))
+                    .ThenBy(w => w.DataRozpoczecia)
+                    .ToList();
+            }
+            else
+            {
+                // Domyślne sortowanie (np. dla Kierownika): Zakończone na dole
+                listaWdrozen = listaWdrozen
+                    .OrderBy(w => w.Status == StatusWdrozenia.Zakonczone)
+                    .ThenByDescending(w => w.DataRozpoczecia)
+                    .ToList();
+            }
+
+            // Przekazanie filtrów do widoku
+            ViewData["CurrentFilter"] = searchString;
+            ViewData["StatusFilter"] = statusFilter;
+
+            return View(listaWdrozen);
         }
 
         // --- 2. DASHBOARD: MOJE ZADANIA ---
@@ -47,7 +90,6 @@ namespace SystemOnboardingowy.Controllers
                 .ThenInclude(w => w.Pracownik)
                 .Where(z => !z.CzyWykonane); // Tylko niewykonane
 
-            // Filtrowanie po roli
             if (User.IsInRole("IT"))
                 zadaniaQuery = zadaniaQuery.Where(z => z.DzialOdpowiedzialny == Dzial.IT);
             else if (User.IsInRole("HR"))
@@ -92,7 +134,7 @@ namespace SystemOnboardingowy.Controllers
                 _context.Add(wdrozenie);
                 await _context.SaveChangesAsync();
 
-                // Standardowe zadania
+                // Generowanie zadań startowych
                 var zadania = new List<ZadanieWdrozeniowe>
                 {
                     new ZadanieWdrozeniowe { WdrozenieId = wdrozenie.Id, DzialOdpowiedzialny = Dzial.IT, TrescZadania = "Założenie konta domenowego i e-mail", CzyWykonane = false },
@@ -110,7 +152,7 @@ namespace SystemOnboardingowy.Controllers
             return View(wdrozenie);
         }
 
-        // --- 5. NOWOŚĆ: DODAWANIE NIESTANDARDOWEGO ZADANIA ---
+        // --- 5. DODAWANIE NIESTANDARDOWEGO ZADANIA ---
         [HttpPost]
         [Authorize(Roles = "Kierownik")]
         public async Task<IActionResult> DodajZadanie(int wdrozenieId, string tresc, Dzial dzial)
@@ -128,7 +170,7 @@ namespace SystemOnboardingowy.Controllers
                 _context.Zadania.Add(noweZadanie);
                 await _context.SaveChangesAsync();
 
-                // Jeśli dodajemy nowe zadanie, status może się cofnąć na "W toku"
+                // Przywracamy status "W Toku" jeśli wdrożenie było zakończone
                 var wdrozenie = await _context.Wdrozenia.Include(w => w.Zadania).FirstOrDefaultAsync(w => w.Id == wdrozenieId);
                 if (wdrozenie != null)
                 {
@@ -201,7 +243,7 @@ namespace SystemOnboardingowy.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // --- 8. AKCJE POMOCNICZE (API) ---
+        // --- 8. API I POMOCNICZE ---
 
         [HttpPost]
         public async Task<IActionResult> OznaczZadanie(int id, bool czyWykonane, string komentarz)
@@ -214,7 +256,7 @@ namespace SystemOnboardingowy.Controllers
             _context.Update(zadanie);
             await _context.SaveChangesAsync();
 
-            // Przeliczanie statusu wdrożenia
+            // Przeliczanie statusu
             var wdrozenie = await _context.Wdrozenia.Include(w => w.Zadania).FirstOrDefaultAsync(w => w.Id == zadanie.WdrozenieId);
             if (wdrozenie != null)
             {
