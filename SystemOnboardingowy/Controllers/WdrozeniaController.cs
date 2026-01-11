@@ -84,14 +84,12 @@ namespace SystemOnboardingowy.Controllers
 
             if (mojDzial == null) return View(new List<ZadanieWdrozeniowe>());
 
-            // ZMIANA: Pobieramy zarówno Wdrożenia jak i Odejścia
             var zadania = await _context.ZadaniaWdrozeniowe
                 .Include(z => z.Wdrozenie).ThenInclude(w => w.Pracownik)
                 .Include(z => z.Odejscie).ThenInclude(o => o.Pracownik)
                 .Where(z => z.Dzial == mojDzial && !z.CzyWykonane)
                 .ToListAsync();
 
-            // Filtrujemy w pamięci, aby wykluczyć anulowane procesy (bezpieczniej dla nulli)
             zadania = zadania.Where(z =>
                 (z.Wdrozenie != null && z.Wdrozenie.Status != StatusZgloszenia.Anulowane) ||
                 (z.Odejscie != null && z.Odejscie.Status != StatusZgloszenia.Anulowane)
@@ -202,7 +200,6 @@ namespace SystemOnboardingowy.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ZMODYFIKOWANA METODA: Obsługuje teraz zadania z Wdrożeń ORAZ Odejść
         [HttpPost]
         public async Task<IActionResult> WykonajZadanie(int zadanieId)
         {
@@ -213,7 +210,6 @@ namespace SystemOnboardingowy.Controllers
                 zadanie.CzyWykonane = !zadanie.CzyWykonane;
                 string status = zadanie.CzyWykonane ? "Wykonano" : "Cofnięto";
 
-                // Obsługa Wdrożenia
                 if (zadanie.WdrozenieId.HasValue)
                 {
                     _context.Notatki.Add(new Notatka { WdrozenieId = zadanie.WdrozenieId.Value, Tresc = $"{status}: {zadanie.Tresc} ({zadanie.Dzial})", Autor = User.Identity.Name, CzyAutomatyczna = true });
@@ -230,14 +226,11 @@ namespace SystemOnboardingowy.Controllers
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Details), new { id = zadanie.WdrozenieId });
                 }
-
-                // Obsługa Odejścia (NOWOŚĆ)
                 if (zadanie.OdejscieId.HasValue)
                 {
                     _context.Notatki.Add(new Notatka { OdejscieId = zadanie.OdejscieId.Value, Tresc = $"{status}: {zadanie.Tresc} ({zadanie.Dzial})", Autor = User.Identity.Name, CzyAutomatyczna = true });
                     await _context.SaveChangesAsync();
 
-                    // Przekierowanie do kontrolera Odejścia
                     return RedirectToAction("Details", "Odejscia", new { id = zadanie.OdejscieId });
                 }
             }

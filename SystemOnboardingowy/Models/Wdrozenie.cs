@@ -4,8 +4,6 @@ namespace SystemOnboardingowy.Models
 {
     public enum StatusZgloszenia { Nowe, WToku, Zakonczone, Anulowane }
     public enum Dzial { HR, IT, Sprzet }
-
-    // Enum dla stanowisk (jeśli używasz go w Pracownik.cs, musi być też dostępny tutaj lub globalnie)
     public enum StanowiskoWdrozeniowe
     {
         [Display(Name = "Office Manager")] OfficeManager,

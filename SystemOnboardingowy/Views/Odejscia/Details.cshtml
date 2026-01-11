@@ -60,13 +60,11 @@
                         <tbody>
                             @foreach (var zadanie in Model.Zadania)
                             {
-                                // --- LOGIKA UPRAWNIEŃ ---
                                 bool czyMozeEdytowac = false;
                                 if (User.IsInRole("Kierownik")) { czyMozeEdytowac = true; }
                                 else if (zadanie.Dzial == SystemOnboardingowy.Models.Dzial.IT && User.IsInRole("IT")) { czyMozeEdytowac = true; }
                                 else if (zadanie.Dzial == SystemOnboardingowy.Models.Dzial.HR && User.IsInRole("HR")) { czyMozeEdytowac = true; }
                                 else if (zadanie.Dzial == SystemOnboardingowy.Models.Dzial.Sprzet && User.IsInRole("Sprzet")) { czyMozeEdytowac = true; }
-                                // ------------------------
 
                                 <tr class="@(czyMozeEdytowac ? "" : "opacity-75")">
                                     <td>

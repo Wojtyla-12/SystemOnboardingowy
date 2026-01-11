@@ -159,7 +159,6 @@ namespace SystemOnboardingowy.Controllers
         }
 
         // POST: Odejscia/WykonajZadanie
-        // --- TUTAJ JEST GŁÓWNA ZMIANA BEZPIECZEŃSTWA ---
         [HttpPost]
         public async Task<IActionResult> WykonajZadanie(int zadanieId)
         {
@@ -167,22 +166,19 @@ namespace SystemOnboardingowy.Controllers
 
             if (zadanie != null && zadanie.OdejscieId.HasValue)
             {
-                // SPRAWDZENIE UPRAWNIEŃ (ROLE)
                 bool maUprawnienia = false;
 
-                if (User.IsInRole("Kierownik")) maUprawnienia = true; // Kierownik może wszystko (opcjonalnie)
+                if (User.IsInRole("Kierownik")) maUprawnienia = true; 
                 else if (zadanie.Dzial == Dzial.IT && User.IsInRole("IT")) maUprawnienia = true;
                 else if (zadanie.Dzial == Dzial.HR && User.IsInRole("HR")) maUprawnienia = true;
                 else if (zadanie.Dzial == Dzial.Sprzet && User.IsInRole("Sprzet")) maUprawnienia = true;
 
                 if (!maUprawnienia)
                 {
-                    // Jeśli użytkownik nie ma prawa, dodajemy ostrzeżenie i nie zmieniamy stanu
                     TempData["Error"] = "Brak uprawnień do wykonania tego zadania!";
                     return RedirectToAction(nameof(Details), new { id = zadanie.OdejscieId });
                 }
 
-                // Jeśli ma uprawnienia, wykonujemy zmianę
                 zadanie.CzyWykonane = !zadanie.CzyWykonane;
                 string status = zadanie.CzyWykonane ? "Wykonano" : "Cofnięto";
 
