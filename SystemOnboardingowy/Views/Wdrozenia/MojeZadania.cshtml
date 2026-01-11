@@ -4,63 +4,92 @@
     ViewData["Title"] = "Moje Zadania";
 }
 
-<div class="container mt-4">
-    <h2 class="mb-4">📋 Moje Zadania (Do zrobienia)</h2>
+<h2 class="mb-4">📋 Moje Zadania (Do wykonania)</h2>
 
-    @if (!Model.Any())
-    {
-        <div class="alert alert-success">
-            🎉 Brak zaległych zadań! Wszystko zrobione.
-        </div>
-    }
-    else
-    {
-        <div class="table-responsive shadow-sm rounded">
-            <table class="table table-hover align-middle mb-0 bg-gradient">
-                <thead class="table-light">
-                    <tr>
-                        <th>Pracownik</th>
-                        <th>Zadanie</th>
-                        <th>Start Pracy</th>
-                        <th>Akcja</th>
+@if (!Model.Any())
+{
+    <div class="alert alert-success">
+        🎉 Brak zaległych zadań! Wszystko zrobione.
+    </div>
+}
+else
+{
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle mb-0" style="background-color: #1e1e1e; border-color: #333;">
+            <thead class="table-dark">
+                <tr>
+                    <th class="text-white">Proces</th>
+                    <th class="text-white">Pracownik</th>
+                    <th class="text-white">Zadanie</th>
+                    <th class="text-white">Termin</th>
+                    <th class="text-white text-end">Akcja</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr style="border-bottom: 1px solid #333;">
+
+                        <td>
+                            @if (item.Wdrozenie != null)
+                            {
+                                <span class="badge bg-success">🚀 Wdrożenie</span>
+                            }
+                            else if (item.Odejscie != null)
+                            {
+                                <span class="badge bg-danger">🚪 Odejście</span>
+                            }
+                        </td>
+
+                        <td>
+                            @if (item.Wdrozenie != null)
+                            {
+                                <strong class="text-white">@item.Wdrozenie.Pracownik?.ImieNazwisko</strong>
+                                <br />
+
+                                <small class="text-white-50">@item.Wdrozenie.Stanowisko</small>
+                            }
+                            else if (item.Odejscie != null)
+                            {
+                                <strong class="text-white">@item.Odejscie.Pracownik?.ImieNazwisko</strong>
+                                <br />
+
+                                <small class="text-white-50">Offboarding</small>
+                            }
+                        </td>
+
+                        <td class="text-white">
+                            @item.Tresc
+                        </td>
+
+                        <td>
+                            @if (item.Wdrozenie != null)
+                            {
+                                var dni = (item.Wdrozenie.DataRozpoczeciaPracy - DateTime.Now).TotalDays;
+                                <span class="@(dni < 2 ? "text-danger fw-bold" : "text-white")">
+                                    @item.Wdrozenie.DataRozpoczeciaPracy.ToString("dd.MM HH:mm")
+                                </span>
+                            }
+                            else if (item.Odejscie != null)
+                            {
+                                var dni = (item.Odejscie.DataOdejscia - DateTime.Now).TotalDays;
+                                <span class="@(dni < 2 ? "text-danger fw-bold" : "text-white")">
+                                    @item.Odejscie.DataOdejscia.ToString("dd.MM.yyyy")
+                                </span>
+                            }
+                        </td>
+
+                        <td class="text-end">
+                            <form asp-action="WykonajZadanie" method="post" class="d-inline">
+                                <input type="hidden" name="zadanieId" value="@item.Id" />
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    ✅ Oznacz jako wykonane
+                                </button>
+                            </form>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model)
-                    {
-                        <tr>
-                            <td>
-                                <strong>@item.Wdrozenie.Pracownik.ImieNazwisko</strong><br />
-                                <small class="text-muted">@item.Wdrozenie.Stanowisko</small>
-                            </td>
-                            <td>
-                                @item.Tresc
-                            </td>
-                            <td>
-                                @if (item.Wdrozenie.DataRozpoczeciaPracy < DateTime.Now)
-                                {
-                                    <span class="badge bg-danger">Zaległe (@item.Wdrozenie.DataRozpoczeciaPracy.ToShortDateString())</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-info text-dark">@item.Wdrozenie.DataRozpoczeciaPracy.ToShortDateString()</span>
-                                }
-                            </td>
-                            <td>
-                                <form asp-action="WykonajZadanie" method="post" class="d-inline">
-                                    <input type="hidden" name="zadanieId" value="@item.Id" />
-                                    <button type="submit" class="btn btn-success btn-sm">
-                                        ✅ Oznacz jako wykonane
-                                    </button>
-                                </form>
-                                <a asp-action="Details" asp-route-id="@item.WdrozenieId" class="btn btn-outline-primary btn-sm ms-1">
-                                    Szczegóły
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
+                }
+            </tbody>
+        </table>
+    </div>
+}

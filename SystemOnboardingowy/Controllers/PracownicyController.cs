@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace SystemOnboardingowy.Controllers
 {
-    [Authorize(Roles = "Kierownik")] // DOSTĘP TYLKO DLA KIEROWNIKA
+    [Authorize(Roles = "Kierownik")]
     public class PracownicyController : Controller
     {
         private readonly OnboardingContext _context;
@@ -16,25 +16,26 @@ namespace SystemOnboardingowy.Controllers
             _context = context;
         }
 
-        // GET: Pracownicy (Lista z filtrowaniem i sortowaniem)
-        public async Task<IActionResult> Index(string sortOrder, string searchString)
+        // GET: Pracownicy
+        public async Task<IActionResult> Index(string sortOrder, string searchString, bool pokazArchiwum = false)
         {
-            // Przekazanie parametrów sortowania do widoku (do nagłówków tabeli)
             ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
             ViewData["PosSortParm"] = sortOrder == "Position" ? "position_desc" : "Position";
             ViewData["CurrentFilter"] = searchString;
+            ViewData["PokazArchiwum"] = pokazArchiwum;
 
             var workers = _context.Pracownicy.AsQueryable();
 
-            // 1. Filtrowanie (Wyszukiwanie)
-            if (!String.IsNullOrEmpty(searchString))
+            if (!pokazArchiwum)
             {
-                workers = workers.Where(s => s.Nazwisko.Contains(searchString)
-                                          || s.Imie.Contains(searchString)
-                                          || s.Stanowisko.Contains(searchString));
+                workers = workers.Where(p => !p.CzyZarchiwizowany);
             }
 
-            // 2. Sortowanie
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                workers = workers.Where(s => s.Nazwisko.Contains(searchString) || s.Imie.Contains(searchString));
+            }
+
             switch (sortOrder)
             {
                 case "name_desc":
@@ -47,11 +48,36 @@ namespace SystemOnboardingowy.Controllers
                     workers = workers.OrderByDescending(s => s.Stanowisko);
                     break;
                 default:
-                    workers = workers.OrderBy(s => s.Nazwisko); // Domyślne sortowanie
+                    workers = workers.OrderBy(s => s.Nazwisko);
                     break;
             }
 
             return View(await workers.ToListAsync());
+        }
+
+        // GET: Pracownicy/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var pracownik = await _context.Pracownicy.FirstOrDefaultAsync(m => m.Id == id);
+
+            if (pracownik == null)
+            {
+                return NotFound();
+            }
+
+            var wdrozenie = await _context.Wdrozenia
+                .Include(w => w.Zadania)
+                .OrderByDescending(w => w.DataUtworzenia)
+                .FirstOrDefaultAsync(w => w.PracownikId == id);
+
+            ViewData["Wdrozenie"] = wdrozenie;
+
+            return View(pracownik);
         }
 
         // GET: Pracownicy/Create
@@ -63,7 +89,7 @@ namespace SystemOnboardingowy.Controllers
         // POST: Pracownicy/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Imie,Nazwisko,Stanowisko,Email")] Pracownik pracownik)
+        public async Task<IActionResult> Create(Pracownik pracownik)
         {
             if (ModelState.IsValid)
             {
@@ -77,18 +103,31 @@ namespace SystemOnboardingowy.Controllers
         // GET: Pracownicy/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+            {
+                return NotFound();
+            }
+
             var pracownik = await _context.Pracownicy.FindAsync(id);
-            if (pracownik == null) return NotFound();
+
+            if (pracownik == null)
+            {
+                return NotFound();
+            }
+
             return View(pracownik);
         }
 
         // POST: Pracownicy/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Imie,Nazwisko,Stanowisko,Email")] Pracownik pracownik)
+        public async Task<IActionResult> Edit(int id, Pracownik pracownik)
         {
-            if (id != pracownik.Id) return NotFound();
+            if (id != pracownik.Id)
+            {
+                return NotFound();
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Update(pracownik);
@@ -101,9 +140,18 @@ namespace SystemOnboardingowy.Controllers
         // GET: Pracownicy/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+            {
+                return NotFound();
+            }
+
             var pracownik = await _context.Pracownicy.FirstOrDefaultAsync(m => m.Id == id);
-            if (pracownik == null) return NotFound();
+
+            if (pracownik == null)
+            {
+                return NotFound();
+            }
+
             return View(pracownik);
         }
 
@@ -113,11 +161,13 @@ namespace SystemOnboardingowy.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var pracownik = await _context.Pracownicy.FindAsync(id);
+
             if (pracownik != null)
             {
                 _context.Pracownicy.Remove(pracownik);
                 await _context.SaveChangesAsync();
             }
+
             return RedirectToAction(nameof(Index));
         }
     }

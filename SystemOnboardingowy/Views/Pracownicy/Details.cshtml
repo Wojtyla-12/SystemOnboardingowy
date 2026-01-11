@@ -1,0 +1,109 @@
+﻿@model SystemOnboardingowy.Models.Pracownik
+
+@{
+    ViewData["Title"] = "Szczegóły Pracownika";
+    var wdrozenie = ViewData["Wdrozenie"] as SystemOnboardingowy.Models.Wdrozenie;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="card shadow border-secondary" style="background-color: #1e1e1e; color: #fff;">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">👤 @Model.Imie @Model.Nazwisko</h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1 fw-bold">Stanowisko:</p>
+                    <p class="text-white-50 mb-3">@Model.Stanowisko</p>
+                    <hr class="border-secondary" />
+                    <p class="mb-1 fw-bold">Email kontaktowy:</p>
+                    <p class="text-white-50 mb-0">@Model.Email</p>
+                </div>
+                <div class="card-footer text-center border-secondary" style="background-color: #252525;">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">✏ Edytuj</a>
+                    <a asp-action="Index" class="btn btn-secondary btn-sm">🔙 Powrót</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <h3 class="mb-3 text-white">📦 Wykaz Uprawnień i Sprzętu</h3>
+            
+            @if (wdrozenie != null)
+            {
+                <div class="card shadow border-secondary" style="background-color: #1e1e1e; color: #fff;">
+                    <div class="card-header bg-dark border-bottom border-secondary d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Status wdrożenia: </strong>
+                            @if(wdrozenie.Status == SystemOnboardingowy.Models.StatusZgloszenia.Zakonczone)
+                            {
+                                 <span class="badge bg-success">Zakończone</span>
+                            }
+                            else
+                            {
+                                 <span class="badge bg-warning text-dark">W toku</span>
+                            }
+                        </div>
+                        <span class="text-white-50 small">Start: @wdrozenie.DataRozpoczeciaPracy.ToString("dd.MM.yyyy")</span>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <table class="table table-dark table-hover mb-0 align-middle">
+                            <thead>
+                                <tr class="border-bottom border-secondary text-white-50">
+                                    <th>Kategoria</th>
+                                    <th>Zasób / Uprawnienie</th>
+                                    <th>Status realizacji</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var zadanie in wdrozenie.Zadania.Where(z => z.Dzial == SystemOnboardingowy.Models.Dzial.IT || z.Dzial == SystemOnboardingowy.Models.Dzial.Sprzet))
+                                {
+                                    <tr class="border-bottom border-secondary" style="border-color: #333 !important;">
+                                        <td>
+                                            @if (zadanie.Dzial == SystemOnboardingowy.Models.Dzial.IT)
+                                            {
+                                                <span class="badge bg-info text-dark">IT / Dostępy</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">Sprzęt</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @zadanie.Tresc
+                                        </td>
+                                        <td>
+                                            @if (zadanie.CzyWykonane)
+                                            {
+                                                <span class="text-success fw-bold">✅ Przyznano / Wydano</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-white-50">⏳ W trakcie przygotowania</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                
+                                @if (!wdrozenie.Zadania.Any(z => z.Dzial == SystemOnboardingowy.Models.Dzial.IT || z.Dzial == SystemOnboardingowy.Models.Dzial.Sprzet))
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center text-white-50 py-4">Brak zdefiniowanych zasobów IT/Sprzęt dla tego pracownika.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert border-danger">
+                    ⚠️ Ten pracownik nie ma jeszcze przypisanego wdrożenia, więc nie można wyświetlić listy sprzętu.
+                </div>
+                <a asp-controller="Wdrozenia" asp-action="Create" class="btn btn-success">➕ Rozpocznij Wdrożenie</a>
+            }
+        </div>
+    </div>
+</div>

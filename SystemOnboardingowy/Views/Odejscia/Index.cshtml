@@ -1,0 +1,90 @@
+﻿@model IEnumerable<SystemOnboardingowy.Models.Odejscie>
+
+@{
+    ViewData["Title"] = "Offboarding";
+    bool pokazZakonczone = (bool?)ViewData["PokazZakonczone"] ?? false;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>👋 Lista Odejść (Offboarding)</h1>
+
+    <div>
+        @if (!pokazZakonczone)
+        {
+            <a asp-action="Index" asp-route-pokazZakonczone="true" class="btn btn-outline-secondary me-2">📜 Pokaż archiwum</a>
+        }
+        else
+        {
+            <a asp-action="Index" asp-route-pokazZakonczone="false" class="btn btn-outline-primary me-2">👁️ Pokaż aktywne</a>
+        }
+
+        @if (User.IsInRole("Kierownik"))
+        {
+            <a asp-action="Create" class="btn btn-danger">➕ Zgłoś odejście</a>
+        }
+    </div>
+</div>
+
+<div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover align-middle mb-0" style="background-color: #1e1e1e; border-color: #333;">
+        <thead>
+            <tr>
+                <th class="text-white">Pracownik</th>
+                <th class="text-white">Data Odejścia</th>
+                <th class="text-white">Status</th>
+                <th class="text-white">Instrukcje</th>
+                <th class="text-end text-white">Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr style="border-bottom: 1px solid #333;">
+                    <td>
+                        <strong class="text-white" style="font-size: 1.1em;">@item.Pracownik?.ImieNazwisko</strong><br />
+                        <span class="text-white-50 small">@item.Pracownik?.Stanowisko</span>
+                    </td>
+                    <td class="text-white">
+                        @item.DataOdejscia.ToShortDateString()
+                        @if ((item.DataOdejscia - DateTime.Now).TotalDays < 7 && item.Status != SystemOnboardingowy.Models.StatusZgloszenia.Zakonczone)
+                        {
+                            <span class="badge bg-danger ms-1">Pilne!</span>
+                        }
+                    </td>
+                    <td>
+                        @switch (item.Status)
+                        {
+                            case SystemOnboardingowy.Models.StatusZgloszenia.Nowe:
+                                <span class="badge bg-primary px-3 py-2">Nowe</span>
+                                ; break;
+                            case SystemOnboardingowy.Models.StatusZgloszenia.WToku:
+                                <span class="badge bg-warning text-dark px-3 py-2">W toku</span>
+                                ; break;
+                            case SystemOnboardingowy.Models.StatusZgloszenia.Zakonczone:
+                                <span class="badge bg-success px-3 py-2">Zakończone</span>
+                                ; break;
+                            case SystemOnboardingowy.Models.StatusZgloszenia.Anulowane:
+                                <span class="badge bg-secondary px-3 py-2">Anulowane</span>
+                                ; break;
+                        }
+                    </td>
+                    <td>
+                        @if (item.CzyPrzekierowacPoczte)
+                        {
+                            <span class="badge bg-info text-dark border border-info" title="Wymagane przekierowanie poczty">📧 Email</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.InstrukcjaDlaPlikow))
+                        {
+                            <span class="badge bg-dark border border-secondary text-white" title="Dostępna instrukcja dla plików">📂 Pliki</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">
+                            ℹ Szczegóły ➡️
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

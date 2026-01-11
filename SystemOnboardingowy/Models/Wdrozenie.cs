@@ -5,7 +5,7 @@ namespace SystemOnboardingowy.Models
     public enum StatusZgloszenia { Nowe, WToku, Zakonczone, Anulowane }
     public enum Dzial { HR, IT, Sprzet }
 
-    // Nowy Enum dla stanowisk
+    // Enum dla stanowisk (jeśli używasz go w Pracownik.cs, musi być też dostępny tutaj lub globalnie)
     public enum StanowiskoWdrozeniowe
     {
         [Display(Name = "Office Manager")] OfficeManager,
@@ -21,7 +21,6 @@ namespace SystemOnboardingowy.Models
         public int Id { get; set; }
         public DateTime DataUtworzenia { get; set; } = DateTime.Now;
 
-        [DataType(DataType.Date)]
         [Display(Name = "Start pracy")]
         public DateTime DataRozpoczeciaPracy { get; set; }
 
@@ -30,14 +29,13 @@ namespace SystemOnboardingowy.Models
         public int PracownikId { get; set; }
         public virtual Pracownik? Pracownik { get; set; }
 
-        // --- NOWE POLA ---
         public StanowiskoWdrozeniowe Stanowisko { get; set; }
 
         [Display(Name = "Wybrany Sprzęt")]
-        public string? WybranySprzet { get; set; } // Np. "Laptop, Myszka"
+        public string? WybranySprzet { get; set; }
 
         [Display(Name = "Dostępy do dysków")]
-        public string? DostepDoDyskow { get; set; } // Np. "HR, Wspólny"
+        public string? DostepDoDyskow { get; set; }
 
         [Display(Name = "Adresy Email")]
         public string? AdresyEmail { get; set; }

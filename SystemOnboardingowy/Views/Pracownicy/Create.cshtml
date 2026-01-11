@@ -1,18 +1,54 @@
 ﻿@model SystemOnboardingowy.Models.Pracownik
+
 @{
-    ViewData["Title"] = "Dodaj";
+    ViewData["Title"] = "Dodaj pracownika";
 }
-<h2>Dodaj Nowego Pracownika</h2>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div class="mb-3"><label>Imię</label><input asp-for="Imie" class="form-control" /></div>
-            <div class="mb-3"><label>Nazwisko</label><input asp-for="Nazwisko" class="form-control" /></div>
-            <div class="mb-3"><label>Stanowisko</label><input asp-for="Stanowisko" class="form-control" /></div>
-            <div class="mb-3"><label>Email</label><input asp-for="Email" class="form-control" /></div>
-            <button type="submit" class="btn btn-primary">Zapisz</button>
-            <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
-        </form>
+
+<div class="container mt-4">
+    <h2>➕ Dodaj nowego pracownika</h2>
+    <hr />
+    <div class="row">
+        <div class="col-md-6">
+            <form asp-action="Create">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Imie" class="control-label fw-bold"></label>
+                    <input asp-for="Imie" class="form-control" placeholder="Np. Jan" />
+                    <span asp-validation-for="Imie" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Nazwisko" class="control-label fw-bold"></label>
+                    <input asp-for="Nazwisko" class="form-control" placeholder="Np. Kowalski" />
+                    <span asp-validation-for="Nazwisko" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Stanowisko" class="control-label fw-bold"></label>
+                    <select asp-for="Stanowisko" class="form-select" asp-items="Html.GetEnumSelectList<SystemOnboardingowy.Models.StanowiskoWdrozeniowe>()">
+                        <option selected="selected" value="">-- Wybierz stanowisko --</option>
+                    </select>
+                    <span asp-validation-for="Stanowisko" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Email" class="control-label fw-bold"></label>
+                    <input asp-for="Email" class="form-control" type="email" placeholder="jan.kowalski@firma.pl" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-success px-4">Zapisz</button>
+                    <a asp-action="Index" class="btn btn-secondary ms-2">Powrót</a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

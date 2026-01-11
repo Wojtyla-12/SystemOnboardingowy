@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SystemOnboardingowy.Data;
 
@@ -11,9 +12,11 @@ using SystemOnboardingowy.Data;
 namespace SystemOnboardingowy.Migrations
 {
     [DbContext(typeof(OnboardingContext))]
-    partial class OnboardingContextModelSnapshot : ModelSnapshot
+    [Migration("20260110212259_ZmianaStanowiskaNaEnum")]
+    partial class ZmianaStanowiskaNaEnum
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -282,6 +285,7 @@ namespace SystemOnboardingowy.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("InstrukcjaDlaPlikow")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PracownikId")
@@ -304,9 +308,6 @@ namespace SystemOnboardingowy.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("CzyZarchiwizowany")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -384,19 +385,14 @@ namespace SystemOnboardingowy.Migrations
                     b.Property<int>("Dzial")
                         .HasColumnType("int");
 
-                    b.Property<int?>("OdejscieId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Tresc")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("WdrozenieId")
+                    b.Property<int>("WdrozenieId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("OdejscieId");
 
                     b.HasIndex("WdrozenieId");
 
@@ -493,15 +489,11 @@ namespace SystemOnboardingowy.Migrations
 
             modelBuilder.Entity("SystemOnboardingowy.Models.ZadanieWdrozeniowe", b =>
                 {
-                    b.HasOne("SystemOnboardingowy.Models.Odejscie", "Odejscie")
-                        .WithMany("Zadania")
-                        .HasForeignKey("OdejscieId");
-
                     b.HasOne("SystemOnboardingowy.Models.Wdrozenie", "Wdrozenie")
                         .WithMany("Zadania")
-                        .HasForeignKey("WdrozenieId");
-
-                    b.Navigation("Odejscie");
+                        .HasForeignKey("WdrozenieId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Wdrozenie");
                 });
@@ -509,8 +501,6 @@ namespace SystemOnboardingowy.Migrations
             modelBuilder.Entity("SystemOnboardingowy.Models.Odejscie", b =>
                 {
                     b.Navigation("Notatki");
-
-                    b.Navigation("Zadania");
                 });
 
             modelBuilder.Entity("SystemOnboardingowy.Models.Wdrozenie", b =>

@@ -4,11 +4,9 @@ using SystemOnboardingowy.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// KONFIGURACJA: Połączenie z bazą SQL
 builder.Services.AddDbContext<OnboardingContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("OnboardingContext")));
 
-// KONFIGURACJA: Identity (Użytkownicy i Role) - uproszczone hasła
 builder.Services.AddDefaultIdentity<IdentityUser>(options => {
     options.SignIn.RequireConfirmedAccount = false;
     options.Password.RequireDigit = false;
@@ -23,7 +21,6 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// AUTOMATYZACJA: Seedowanie bazy danych przy starcie
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -50,8 +47,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseAuthentication(); // KTO?
-app.UseAuthorization();  // CO MOŻE?
+app.UseAuthentication();
+app.UseAuthorization();  
 
 app.MapControllerRoute(
     name: "default",
