@@ -93,7 +93,10 @@ namespace SystemOnboardingowy.Controllers
             zadania = zadania.Where(z =>
                 (z.Wdrozenie != null && z.Wdrozenie.Status != StatusZgloszenia.Anulowane) ||
                 (z.Odejscie != null && z.Odejscie.Status != StatusZgloszenia.Anulowane)
-            ).OrderBy(z => z.Wdrozenie?.DataRozpoczeciaPracy ?? z.Odejscie?.DataOdejscia).ToList();
+            )
+            .OrderBy(z => z.Wdrozenie != null ? z.Wdrozenie.Pracownik.Nazwisko : z.Odejscie.Pracownik.Nazwisko)
+            .ThenBy(z => z.Wdrozenie != null ? z.Wdrozenie.DataRozpoczeciaPracy : z.Odejscie.DataOdejscia)
+            .ToList();
 
             return View(zadania);
         }
@@ -226,11 +229,11 @@ namespace SystemOnboardingowy.Controllers
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Details), new { id = zadanie.WdrozenieId });
                 }
+
                 if (zadanie.OdejscieId.HasValue)
                 {
                     _context.Notatki.Add(new Notatka { OdejscieId = zadanie.OdejscieId.Value, Tresc = $"{status}: {zadanie.Tresc} ({zadanie.Dzial})", Autor = User.Identity.Name, CzyAutomatyczna = true });
                     await _context.SaveChangesAsync();
-
                     return RedirectToAction("Details", "Odejscia", new { id = zadanie.OdejscieId });
                 }
             }
